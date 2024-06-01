@@ -11,10 +11,12 @@ return new class extends Migration
      */
     public function up(): void
     {
-        schema::table("users", function (Blueprint $table) {
-            $table->timestamp('created_at')->useCurrent()->change();
-            $table->boolean('is_deleted')->nullable();
+        Schema::create('rooms', function (Blueprint $table) {
+            $table->id();
+            $table->string('name');
+            $table->foreignId('owner_id')->constrained("users");
             $table->timestamp('deleted_at')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -23,9 +25,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        schema::table("users", function (Blueprint $table) {
-            $table->dropColumn('is_deleted');
-            $table->dropColumn('deleted_at');
-        });
+        Schema::dropIfExists('rooms');
     }
 };

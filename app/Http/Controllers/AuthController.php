@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Resources\AuthTokenResource;
+use App\Http\Requests\RegisterRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use App\Http\Requests\LoginRequest;
+use App\Services\AuthService;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
@@ -13,61 +15,86 @@ class AuthController extends Controller
      * Display a listing of the resource.
      */
 
+    private $authService;
 
-    function register(LoginRequest $request) {
+    public function __construct(AuthService $authService) {
+        $this->authService = $authService;
+    }
+
+
+    public function register(RegisterRequest $request) {
         // validate user input
         $userInput = $request->validated();
 
         // create new user
-
-
+        $user = $this->authService->register($userInput);
+        $token = $user->createToken("messenger_session_token");
 
         return response()->json([
-            'user' => []
-        ], Response::HTTP_BAD_REQUEST);
+            'data' => [
+                'user' => $user,
+                'access_token' => $token->accessToken,
+                'token_expires_at' => $token->token["expires_at"]
+            ]
+        ], Response::HTTP_OK);
     }
 
-    public function index()
+    public function login(LoginRequest $request)
     {
-        //
+        // validate user input
+        $userInput = $request->validated();
+
+        // create new user
+        $user = $this->authService->getUserByEmail($userInput["email"]);
+
+        if(!$user || !password_verify($userInput["password"], $user["password"])) {
+            return response()->json([
+                "success" => false,
+                "errorCode" => 'invalid_credentials',
+            ], Response::HTTP_BAD_REQUEST);
+        }
+
+        $token = $user->createToken("messenger_session_token");
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'user' => $user,
+                'access_token' => $token->accessToken,
+                'token_expires_at' => $token->token["expires_at"]
+            ]
+        ], Response::HTTP_OK);
     }
 
+    public function show() {
+        $user = Auth::user();
 
-    public function create(LoginRequest $request)
-    {
-        error_log('create here');
+        if(!$user) {
+            return response()->json([
+                'success' => false,
+                'errorCode' => 'invalid_token'
+            ], Response::HTTP_UNAUTHORIZED);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'=> [
+                'user'=> $user
+            ]
+        ], Response::HTTP_OK);
     }
 
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
+    public function destroy(Request $request) {
+        $userId = $request->user()["id"];
+        $success = $this->authService->deleteUser($userId);
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
+        if (!$success) {
+            return response()->json([
+                'success'=> false,
+                'errorCode'=> 'internal_server_error'
+            ], Response::HTTP_INTERNAL_SERVER_ERROR);
+        }
 
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
+        return response()->json(['success' => true]);
     }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
-
 }

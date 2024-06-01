@@ -7,28 +7,25 @@ use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
 use Illuminate\Http\Response;
 
-class LoginRequest extends FormRequest {
+class CreateRoomRequest extends FormRequest {
 
-    public function authorize()
-    {
-        return true;
-    }
 
     public function rules()
     {
         return [
-            "email" => "required",
-            "password" => "required",
+            "name" => "required|string|max:75"
         ];
     }
 
-    public function failedValidation(Validator $validator) {
+     public function failedValidation(Validator $validator) {
+        $msg = $validator->errors()->first();
         $key = array_keys($validator->errors()->getMessages())[0];
+        $prefix = !str_contains($msg, "required") ? "invalid_" : "";
+        $suffix = str_contains($msg,"required") ? "_required" : "";
 
         $response = response()->json([
             "success" => false,
-            "data" => null,
-            "errorCode" => $key . '_required',
+            "errorCode" => $prefix . $key . $suffix,
         ], Response::HTTP_BAD_REQUEST);
 
         throw new HttpResponseException($response);

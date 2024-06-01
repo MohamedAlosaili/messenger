@@ -4,9 +4,10 @@ namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-use Laravel\Sanctum\HasApiTokens;
+use Laravel\Passport\HasApiTokens;
 
 class User extends Authenticatable
 {
@@ -22,7 +23,6 @@ class User extends Authenticatable
         'email',
         'password',
         'created_at',
-        'is_deleted',
         'deleted_at',
     ];
 
@@ -44,4 +44,12 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at' => 'datetime',
     ];
+
+    public function rooms(): HasMany {
+        return $this->hasMany(Room::class, "owner_id");
+    }
+
+    public function messages(): HasMany {
+        return $this->hasMany(Message::class, "sender_id");
+    }
 }
